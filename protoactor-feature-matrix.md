@@ -14,6 +14,7 @@
 
 ## Concurrency
 - ~~Message posting can be done concurrently~~
+- ~~Message receive is done sequentially~~
 - Yield control on I/O calls
 
 # Actor
