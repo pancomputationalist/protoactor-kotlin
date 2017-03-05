@@ -1,9 +1,7 @@
 package protoactor
 
 import org.junit.*
-import java.util.concurrent.*
 
-fun waitForIdle() = ForkJoinPool.commonPool().awaitTermination(5, TimeUnit.SECONDS)
 
 class ActorTests {
   @Test fun actorSpawnsWithAssignedId() {

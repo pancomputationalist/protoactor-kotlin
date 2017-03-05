@@ -16,7 +16,7 @@ interface Mailbox : MessageReceiver {
   fun start()
 }
 
-fun boundedMailbox(size: Int) = DefaultMailbox(MpscUnboundedArrayQueue<Message>(8), MpscArrayQueue<SystemMessage>(size))
+fun boundedMailbox(size: Int) = DefaultMailbox(MpscArrayQueue<Message>(size), MpscUnboundedArrayQueue<SystemMessage>(8))
 fun unboundedMailbox() = DefaultMailbox(MpscUnboundedArrayQueue<Message>(8), MpscUnboundedArrayQueue<SystemMessage>(8))
 
 class DefaultMailbox(

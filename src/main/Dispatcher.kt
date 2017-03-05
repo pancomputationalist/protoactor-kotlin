@@ -2,7 +2,7 @@ package protoactor
 
 import kotlinx.coroutines.experimental.*
 
-typealias Task = suspend kotlinx.coroutines.experimental.CoroutineScope.() -> Unit
+typealias Task = suspend CoroutineScope.() -> Unit
 
 interface Dispatcher {
   val throughput: Int
