@@ -4,11 +4,13 @@ interface Context : ActorContext, MessageContext
 
 interface ActorContext {
   val activeBehavior: Behavior
-  val self: ActorRef
+  val self: PID
+  val parent: PID?
+  val children: List<PID>?
 }
 
 interface MessageContext {
-  val sender: ActorRef?
+  val sender: PID?
   fun respond(msg: Message) = tell(sender!!, msg)
 }
 
@@ -16,10 +18,13 @@ class LocalContext(
   val producer: () -> Behavior,
   val supervisionStrategy: () -> Unit,
   val middlewareChain: (Message) -> Message,
-  val parent: ActorRef?
+  override val parent: PID?
 ) : Context, MessageInvoker {
-  override lateinit var self: ActorRef
-  override val activeBehavior = producer()
+
+  override lateinit var self: PID
+  override var children: MutableList<PID>? = null
+
+  override var activeBehavior = producer()
   override val sender = null
 
   lateinit var process: Process
@@ -60,7 +65,31 @@ class LocalContext(
   override suspend fun escalateFailure(msg: Message, reason: Exception) {
   }
 
+  private var restarting = false
+  private var stopping = true
   private suspend fun handleStop() {
+    restarting = false
+    stopping = true
+    invokeUserMessage(Stopping)
+    children?.forEach { stop(it) }
+    tryRestartOrTerminateAsync()
+  }
+
+  private suspend fun tryRestartOrTerminateAsync() {
+    if (children?.isNotEmpty() == true) return
+    if (restarting) restart()
+    if (stopping) stop()
+  }
+
+  private suspend fun restart() {
+    activeBehavior = producer()
+    tell(self, ResumeMailbox)
+    invokeUserMessage(Started)
+  }
+
+  private suspend fun stop() {
+    ProcessRegistry.unregister(self)
+    invokeUserMessage(Stopped)
   }
 
   private suspend fun handleTerminated() {

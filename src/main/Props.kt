@@ -5,7 +5,7 @@ class Props(
   val mailboxProducer: () -> Mailbox = { unboundedMailbox() },
   val supervisionStrategy: () -> Unit = {},
   val middlewareChain: (Message) -> (Message) = { it },
-  val parent: ActorRef? = null,
+  val parent: PID? = null,
   val dispatcher: Dispatcher = ThreadPoolDispatcher(),
   val spawner: Spawner = ::defaultSpawner
 )

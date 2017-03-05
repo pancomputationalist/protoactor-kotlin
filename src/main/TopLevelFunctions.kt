@@ -1,9 +1,9 @@
 package protoactor
 
-fun tell(receiver: ActorRef, message: Message)
-  = resolveProcess(receiver).postUserMessage(message)
+fun tell(receiver: PID, message: Message)
+  = receiver.process.postUserMessage(message)
 
-fun request(actor: ActorRef, message: Message, respondTo: ActorRef)
+fun request(actor: PID, message: Message, respondTo: PID)
   = tell(actor, MessageEnvelope(message, respondTo))
 
 fun spawn(behavior: Behavior)
@@ -11,3 +11,6 @@ fun spawn(behavior: Behavior)
 
 fun spawn(id: String, props: Props)
   = props.spawner(id, props, null)
+
+fun stop(actor: PID)
+  = actor.process.stop()
