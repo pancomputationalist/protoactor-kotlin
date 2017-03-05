@@ -6,7 +6,7 @@ interface ActorContext {
   val activeBehavior: Behavior
   val self: PID
   val parent: PID?
-  val children: List<PID>?
+  val children: Set<PID>?
 }
 
 interface MessageContext {
@@ -22,12 +22,19 @@ class LocalContext(
 ) : Context, MessageInvoker {
 
   override lateinit var self: PID
-  override var children: MutableList<PID>? = null
+  override var children: HashSet<PID>? = null
 
   override var activeBehavior = producer()
+
   override val sender = null
 
+  var watching: HashSet<PID>? = null
+  var watchers: HashSet<PID>? = null
+
   lateinit var process: Process
+  private var restarting = false
+  private var stopping = true
+
 
   override suspend fun invokeUserMessage(msg: Message) {
     logVerbose("invokeUserMessage $msg")
@@ -42,18 +49,53 @@ class LocalContext(
     logVerbose("invokeSystemMessage $msg")
     try {
       when (msg) {
-        is Started -> invokeUserMessage(msg)
-        is Stop -> handleStop()
-        is Terminated -> handleTerminated()
-        is Watch -> handleWatch()
-        is Unwatch -> handleUnwatch()
-        is Failure -> handleFailure()
-        is Restart -> handleRestart()
+
+        is Started -> {
+          invokeUserMessage(msg)
+        }
+
+        is Stop -> {
+          restarting = false
+          stopping = true
+          invokeUserMessage(Stopping)
+          children?.forEach { stop(it) }
+          tryRestartOrTerminateAsync()
+        }
+
+        is Terminated -> {
+          children?.remove(msg.who)
+          watching?.remove(msg.who)
+          invokeUserMessage(msg)
+          tryRestartOrTerminateAsync()
+        }
+
+        is Watch -> {
+          watchers = watchers ?: HashSet<PID>()
+          watchers!!.add(msg.watcher)
+        }
+
+        is Unwatch -> {
+          watchers?.remove(msg.watcher)
+        }
+
+        is Failure -> {
+          // supervision
+        }
+
+        is Restart -> {
+          activeBehavior = producer()
+          tell(self, ResumeMailbox)
+          invokeUserMessage(Started)
+        }
+
         is SuspendMailbox -> {
         }
+
         is ResumeMailbox -> {
         }
+
         else -> {
+          logError("unknown system message $msg")
         }
       }
       return
@@ -65,15 +107,6 @@ class LocalContext(
   override suspend fun escalateFailure(msg: Message, reason: Exception) {
   }
 
-  private var restarting = false
-  private var stopping = true
-  private suspend fun handleStop() {
-    restarting = false
-    stopping = true
-    invokeUserMessage(Stopping)
-    children?.forEach { stop(it) }
-    tryRestartOrTerminateAsync()
-  }
 
   private suspend fun tryRestartOrTerminateAsync() {
     if (children?.isNotEmpty() == true) return
@@ -82,29 +115,11 @@ class LocalContext(
   }
 
   private suspend fun restart() {
-    activeBehavior = producer()
-    tell(self, ResumeMailbox)
-    invokeUserMessage(Started)
   }
 
   private suspend fun stop() {
     ProcessRegistry.unregister(self)
     invokeUserMessage(Stopped)
-  }
-
-  private suspend fun handleTerminated() {
-  }
-
-  private suspend fun handleWatch() {
-  }
-
-  private suspend fun handleUnwatch() {
-  }
-
-  private suspend fun handleFailure() {
-  }
-
-  private suspend fun handleRestart() {
   }
 }
 
