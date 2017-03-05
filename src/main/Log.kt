@@ -19,6 +19,11 @@ fun logVerbose(s: Any) {
     println("[Verbose] $s")
 }
 
+fun logError(s: Any) {
+  if (logLevel >= LogLevel.Error)
+    println("[Error] $s")
+}
+
 fun logError(s: Any, ex: Exception) {
   if (logLevel >= LogLevel.Error)
     println("[Error] $s ($ex)")

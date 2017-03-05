@@ -6,6 +6,16 @@ import java.util.concurrent.*
 fun waitForIdle() = ForkJoinPool.commonPool().awaitTermination(5, TimeUnit.SECONDS)
 
 class ActorTests {
+  @Test fun actorSpawnsWithAssignedId() {
+    val name = PID("test_address", "test_id")
+    val props = Props(
+      producer = { { msg -> {} } },
+      spawner = { id, p, parent -> name })
+    val pid = spawn(props)
+
+    assert(pid == name)
+  }
+
 //  @Test fun actorStarts() {
 //    var started = false
 //    spawn { msg -> if (msg is Started) started = true }
@@ -23,7 +33,8 @@ class ActorTests {
       }
     }
     tell(actor, MyUserMessage())
-    Thread.sleep(5000)
+
+    waitForIdle()
     assert(received)
   }
 }

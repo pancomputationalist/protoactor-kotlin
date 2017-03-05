@@ -9,6 +9,9 @@ fun request(actor: PID, message: Message, respondTo: PID)
 fun spawn(behavior: Behavior)
   = spawn(ProcessRegistry.generateId(), Props({ behavior }))
 
+fun spawn(props: Props)
+  = props.spawner(ProcessRegistry.generateId(), props, null)
+
 fun spawn(id: String, props: Props)
   = props.spawner(id, props, null)
 
